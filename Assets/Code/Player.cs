@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class Player : MonoBehaviour
+public class Player : MonoBehaviour, ITakeDamage
 {
     private bool _isFacingRight;
     private CharacterController2D _controller;
@@ -14,10 +14,20 @@ public class Player : MonoBehaviour
     public float SpeedAccelerationInAir = 5f;
     public int MaxHealth = 100;
     public GameObject OuchEffect;
+    public Projectile Projectile;
+    public float FireRate;
+    public Transform ProjectileFireLocation;
+    public GameObject FireProjectileEffect;
+    public AudioClip PlayerHitSound;
+    public AudioClip PlayerShootSound;
+    public AudioClip PlayerHealthSound;
+    public Animator Animator;
 
     public int Health { get; private set; }
 
     public bool isDead { get; private set; }
+
+    private float _canFireIn;
 
     public void Awake()
     {
@@ -28,6 +38,8 @@ public class Player : MonoBehaviour
 
     public void Update()
     {
+        _canFireIn -= Time.deltaTime;
+
         if (!isDead)
             HandleInput();
 
@@ -37,6 +49,17 @@ public class Player : MonoBehaviour
             _controller.SetHorizontalForce(0);
         else
         _controller.SetHorizontalForce(Mathf.Lerp(_controller.Velocity.x, _normalizedHorizontalSpeed * MaxSpeed, Time.deltaTime * movementFactor));
+
+        Animator.SetBool("IsGrounded", _controller.State.IsGrounded);
+        Animator.SetBool("IsDead", isDead);
+        Animator.SetFloat("Speed", Mathf.Abs(_controller.Velocity.x) / MaxSpeed);
+    }
+
+    public void FinishLevel()
+    {
+        enabled = false;
+        _controller.enabled = false;
+       // collider2D.enabled = false;
     }
 
     public void Kill()
@@ -62,13 +85,22 @@ public class Player : MonoBehaviour
         transform.position = spawnPoint.position;
     }
 
-    public void TakeDamage(int damage)
+    public void TakeDamage(int damage, GameObject instigator)
     {
+        AudioSource.PlayClipAtPoint(PlayerHitSound, transform.position);
+        FloatingText.Show(string.Format("-{0}", damage), "PlayerTakeDamageText", new FromWorldPointTextPositioner(Camera.main, transform.position, 2f, 60f));
         Instantiate(OuchEffect, transform.position, transform.rotation);
         Health -= damage;
 
         if (Health <= 0)
             LevelManager.Instance.KillPlayer();
+    }
+
+    public void GiveHealth(int health, GameObject instigator)
+    {
+        AudioSource.PlayClipAtPoint(PlayerHealthSound, transform.position);
+        FloatingText.Show(string.Format("+{0}", health), "PlayerGotHealthText", new FromWorldPointTextPositioner(Camera.main, transform.position, 2f, 60f));
+        Health = Mathf.Min(Health + health, MaxHealth);
     }
 
     private void HandleInput()
@@ -92,6 +124,26 @@ public class Player : MonoBehaviour
 
         if (_controller.CanJump && Input.GetKeyDown(KeyCode.Space))
             _controller.Jump();
+
+        if (Input.GetMouseButtonDown(0))
+            FireProjectile();
+
+    }
+
+    private void FireProjectile()
+    {
+        if (_canFireIn > 0)
+            return;
+
+        var direction = _isFacingRight ? Vector2.right : -Vector2.right;
+
+        var projectile = (Projectile)Instantiate(Projectile, ProjectileFireLocation.position, ProjectileFireLocation.rotation);
+        projectile.Initialize(gameObject, direction, _controller.Velocity);
+
+        _canFireIn = FireRate;
+
+        AudioSource.PlayClipAtPoint(PlayerShootSound, transform.position);
+        Animator.SetTrigger("Fire");
     }
 
     private void Flip()
