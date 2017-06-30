@@ -3,11 +3,12 @@
 public class SimpleEnemyAI : MonoBehaviour, ITakeDamage, IPlayerRespawnListener
 {
     public float Speed;
-    public float FireRate = 1;
-    public Projectile Projectile;
+    //public float FireRate = 1;
+    //public Projectile Projectile;
     public GameObject DestroyedEffect;
     public int PointsToGivePlayer;
-    public AudioClip ShootSound;
+    //public AudioClip ShootSound;
+    public int ShotsToKill = 3;
 
     private CharacterController2D _controller;
     private Vector2 _direction;
@@ -38,29 +39,34 @@ public class SimpleEnemyAI : MonoBehaviour, ITakeDamage, IPlayerRespawnListener
         if(!raycast)
             return;
 
-        var projectile = (Projectile) Instantiate(Projectile, transform.position, transform.rotation);
-        projectile.Initialize(gameObject, _direction, _controller.Velocity);
-        _canFireIn = FireRate;
+        //var projectile = (Projectile) Instantiate(Projectile, transform.position, transform.rotation);
+        //projectile.Initialize(gameObject, _direction, _controller.Velocity);
+        //_canFireIn = FireRate;
 
-        if (ShootSound != null)
-            AudioSource.PlayClipAtPoint(ShootSound, transform.position);
+        //if (ShootSound != null)
+        //    AudioSource.PlayClipAtPoint(ShootSound, transform.position);
     }
 
 
     public void TakeDamage(int damage, GameObject instigator)
     {
-        if (PointsToGivePlayer != 0)
+        ShotsToKill--;
+        if (ShotsToKill < 1)
         {
-            var projectile = instigator.GetComponent<Projectile>();
-            if (projectile != null && projectile.Owner.GetComponent<Player>() != null)
+            if (PointsToGivePlayer != 0)
             {
-                GameManager.Instance.AddPoints(PointsToGivePlayer);
-                FloatingText.Show(string.Format("+{0}!", PointsToGivePlayer), "PointStarText", new FromWorldPointTextPositioner(Camera.main, transform.position, 1.5f, 50));
+                var projectile = instigator.GetComponent<Projectile>();
+                if (projectile != null && projectile.Owner.GetComponent<Player>() != null)
+                {
+                    GameManager.Instance.AddPoints(PointsToGivePlayer);
+                    FloatingText.Show(string.Format("+{0}!", PointsToGivePlayer), "PointStarText", new FromWorldPointTextPositioner(Camera.main, transform.position, 1.5f, 50));
+                }
             }
+
+            Instantiate(DestroyedEffect, transform.position, transform.rotation);
+            gameObject.SetActive(false);
         }
 
-        Instantiate(DestroyedEffect, transform.position, transform.rotation);
-        gameObject.SetActive(false);
     }
 
     public void OnPlayerRespawnInThisCheckpoint(Checkpoint checkpoint, Player player)
