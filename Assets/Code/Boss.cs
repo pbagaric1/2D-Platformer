@@ -7,36 +7,57 @@ public class Boss : MonoBehaviour, ITakeDamage
 
     public Transform[] spots;
     public float speed;
-    public float bossHealth = 100;
+    public int MaxHealth = 100;
     public float projectileSpeed;
     private bool vulnerable;
     private bool dead;
+    private CameraShake cameraShake;
+    public int Health { get; private set; }
 
     public Transform[] shootSpots;
     public GameObject projectile;
+    public GameObject Wall;
+    private Vector3 origWallPosition;
 
-    GameObject Player;
+    public Player player;
+    private WallTrigger wallTrigger;
     Vector3 playerPosition;
+    public AudioClip SpawnProjectileSound;
+
 	// Use this for initialization
 	void Start () {
-        Player = GameObject.FindGameObjectWithTag("Player");
-        StartCoroutine("boss");
+        Health = MaxHealth;
+        player = GameObject.FindObjectOfType(typeof(Player)) as Player;
+        cameraShake = GameObject.FindObjectOfType(typeof(CameraShake)) as CameraShake;
+        wallTrigger = GameObject.FindObjectOfType(typeof(WallTrigger)) as WallTrigger;
+        origWallPosition.x = Wall.transform.position.x;
+        origWallPosition.y = Wall.transform.position.y;
+        //StartCoroutine("boss");
 	
 	}
 	
 	// Update is called once per frame
 	void Update () {
+        if (player.Health <= 0)
+        {
+            StopCoroutine(wallTrigger.gameCoroutine);
+            StartCoroutine("WallGoUp");
+            wallTrigger.CoroutineStarted = false;
+            transform.position = spots[3].position;
+        }
 
-        if (bossHealth <= 0 && !dead)
+
+        if (Health <= 0 && !dead)
         {
             dead = true;
             GetComponent<SpriteRenderer>().color = Color.gray;
             StopCoroutine("boss");
         }
+
 	
 	}
 
-    IEnumerator boss()
+    public IEnumerator boss()
     {
         while (true)
         {
@@ -57,34 +78,54 @@ public class Boss : MonoBehaviour, ITakeDamage
             while (i < 6)
             {
                 GameObject bullet = (GameObject)Instantiate(projectile, shootSpots[UnityEngine.Random.Range(0, 2)].position, Quaternion.identity);
-                //bullet.GetComponent<Rigidbody2D>().velocity = -Vector2.right * projectileSpeed;
+                AudioSource.PlayClipAtPoint(SpawnProjectileSound, transform.position);
+                bullet.GetComponent<Rigidbody2D>().velocity = -Vector2.right * projectileSpeed;
                 i++;
                 yield return new WaitForSeconds(1f);
             }
 
             //second attack
-            while (transform.position != spots[2].position)
+            
+
+            int j = 0;
+            while (j < 6)
             {
-                transform.position = Vector2.MoveTowards(transform.position, spots[2].position, speed);
-                yield return null;
+                while (transform.position != spots[2].position)
+                {
+                    transform.position = Vector2.MoveTowards(transform.position, spots[2].position, speed);
+                    yield return null;
+                }
+                playerPosition = player.transform.position;
+
+                yield return new WaitForSeconds(2f);
+
+                while (transform.position != spots[3].position)
+                {
+                    transform.position = Vector2.MoveTowards(transform.position, spots[3].position, speed);
+                    yield return null;
+                }
+                cameraShake.Shake();
+
+                yield return new WaitForSeconds(2f);
+                j++;
+
             }
-
-            playerPosition = Player.transform.position;
-
-            yield return new WaitForSeconds(1f);
-
-            while (transform.position.x != playerPosition.x)
-            {
-                transform.position = Vector2.MoveTowards(transform.position, new Vector2(playerPosition.x, playerPosition.y), speed);
-
-                yield return null;
-            }
-
             this.tag = "Untagged";
             vulnerable = true;
             yield return new WaitForSeconds(4f);
             this.tag = "Deadly";
             vulnerable = false;
+
+            
+
+            //while (transform.position.x != playerPosition.x)
+            //{
+            //    transform.position = Vector2.MoveTowards(transform.position, new Vector2(playerPosition.x, playerPosition.y), speed);
+
+            //    yield return null;
+            //}
+
+           
 
             //third attack
             //Transform temp;
@@ -102,12 +143,23 @@ public class Boss : MonoBehaviour, ITakeDamage
         }
     }
 
+    IEnumerator WallGoUp()
+    {
+        while (Wall.transform.position.y != origWallPosition.y)
+        {
+            Wall.transform.position = Vector2.MoveTowards(Wall.transform.position, new Vector2(origWallPosition.x, origWallPosition.y), speed);
+
+            yield return null;
+        }
+
+    }
+
     public void TakeDamage(int damage, GameObject instigator)
     {
         if (vulnerable)
         {
-            bossHealth -= 50;
-            vulnerable = false;
+            Health -= 10;
+
         }
     }
     //void OnCollisionEnter2D(Collision2D col)

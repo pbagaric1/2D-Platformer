@@ -48,5 +48,12 @@ public class FollowPath : MonoBehaviour
         var distanceSquared = (transform.position - _currentPoint.Current.position).sqrMagnitude;
         if (distanceSquared < MaxDistanceToGoal * MaxDistanceToGoal)
             _currentPoint.MoveNext();
+
+        if (_currentPoint.Current.tag == "Finish")
+        {
+            _currentPoint = Path.GetPathEnumerator();
+            _currentPoint.MoveNext();
+        }
+            
     }
 }

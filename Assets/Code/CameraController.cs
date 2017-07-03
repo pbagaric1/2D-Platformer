@@ -9,8 +9,9 @@ public class CameraController : MonoBehaviour
     public Vector2 Smoothing;
 
     public BoxCollider2D Bounds;
+    public BoxCollider2D BossBounds;
 
-    private Vector3
+    public Vector3
         _min,
         _max;
 

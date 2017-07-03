@@ -16,7 +16,7 @@ public class GameHud : MonoBehaviour
 
                 var time = LevelManager.Instance.RunningTime;
                 GUILayout.Label(string.Format(
-                    "{0:00}:{1:00} with {2} bonus",
+                    "{0:00}:{1:00}",
                     time.Minutes + (time.Hours * 60),
                     time.Seconds,
                     LevelManager.Instance.CurrentTimeBonus), Skin.GetStyle("TimeText"));
