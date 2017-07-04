@@ -22,7 +22,7 @@ public class CameraController : MonoBehaviour
         _min = Bounds.bounds.min;
         _max = Bounds.bounds.max;
         isFollowing = true;
-
+        
     }
 
     public void Update()

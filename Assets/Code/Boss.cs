@@ -17,12 +17,16 @@ public class Boss : MonoBehaviour, ITakeDamage
     public Transform[] shootSpots;
     public GameObject projectile;
     public GameObject Wall;
+    public GameObject EndWall;
     private Vector3 origWallPosition;
+    private bool isJumping;
 
     public Player player;
     private WallTrigger wallTrigger;
     Vector3 playerPosition;
     public AudioClip SpawnProjectileSound;
+    public GameObject DestroyedEffect;
+    public Animator Animator;
 
 	// Use this for initialization
 	void Start () {
@@ -44,16 +48,21 @@ public class Boss : MonoBehaviour, ITakeDamage
             StartCoroutine("WallGoUp");
             wallTrigger.CoroutineStarted = false;
             transform.position = spots[3].position;
+            Health = MaxHealth;
         }
 
 
         if (Health <= 0 && !dead)
         {
             dead = true;
-            GetComponent<SpriteRenderer>().color = Color.gray;
-            StopCoroutine("boss");
+            StopCoroutine(wallTrigger.gameCoroutine);
+            Instantiate(DestroyedEffect, transform.position, transform.rotation);
+            gameObject.SetActive(false);
+            Destroy(EndWall);
         }
 
+        Animator.SetBool("vulnerable", vulnerable);
+        Animator.SetBool("isJumping", isJumping);
 	
 	}
 
@@ -75,11 +84,17 @@ public class Boss : MonoBehaviour, ITakeDamage
             yield return new WaitForSeconds(1f);
 
             int i = 0;
-            while (i < 6)
+            while (i < 5)
             {
                 GameObject bullet = (GameObject)Instantiate(projectile, shootSpots[UnityEngine.Random.Range(0, 2)].position, Quaternion.identity);
                 AudioSource.PlayClipAtPoint(SpawnProjectileSound, transform.position);
                 bullet.GetComponent<Rigidbody2D>().velocity = -Vector2.right * projectileSpeed;
+
+                if (Animator != null)
+                {
+                    Animator.SetTrigger("Shoot");
+                }
+
                 i++;
                 yield return new WaitForSeconds(1f);
             }
@@ -88,16 +103,24 @@ public class Boss : MonoBehaviour, ITakeDamage
             
 
             int j = 0;
-            while (j < 6)
+            while (j < 5)
             {
                 while (transform.position != spots[2].position)
                 {
                     transform.position = Vector2.MoveTowards(transform.position, spots[2].position, speed);
+                    isJumping = true;
                     yield return null;
+                    
                 }
+                isJumping = false;
                 playerPosition = player.transform.position;
 
                 yield return new WaitForSeconds(2f);
+
+                if (Animator != null)
+                {
+                    Animator.SetTrigger("Jump");
+                }
 
                 while (transform.position != spots[3].position)
                 {
